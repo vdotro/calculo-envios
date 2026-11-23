@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calculadora de Envíos — Vivero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F3EC; --ink: #24321F; --ink-soft: #5B6754; --line: #D9D3C2;
+    --card: #FFFFFF; --green: #35502E; --green-deep: #233A20; --clay-soft: #F1DFCF; --btn: #35502E;
+    box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#1B211A; --ink:#EDEBE2; --ink-soft:#A9B39F; --line:#37402F; --card:#232B20; --green:#8DB57A; --green-deep:#C5DDB6; --clay-soft:#3A2A1E; } }
+  :root[data-theme="dark"] { --bg:#1B211A; --ink:#EDEBE2; --ink-soft:#A9B39F; --line:#37402F; --card:#232B20; --green:#8DB57A; --green-deep:#C5DDB6; --clay-soft:#3A2A1E; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  body { margin:0; background: var(--bg); color: var(--ink); font-family:'Work Sans',system-ui,sans-serif; line-height:1.45; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 60px; }
+  h1 { font-family:'Zilla Slab',Georgia,serif; font-weight:700; font-size:26px; margin:0 0 4px; color:var(--green-deep); }
+  .sub { color: var(--ink-soft); font-size: 14px; margin: 0 0 24px; max-width: 62ch; }
+  .grid { display:grid; grid-template-columns: 1.25fr 1fr; gap:20px; align-items:start; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; }
+  .card h2 { font-family:'Zilla Slab',serif; font-size:16px; font-weight:600; margin:0 0 12px; color:var(--green); }
+  .item-row { display:grid; grid-template-columns: 1fr 52px auto 24px; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); }
+  .item-row:last-child { border-bottom:none; }
+  .item-name { font-size:14px; }
+  .kg-input { width:48px; padding:5px 4px; text-align:center; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:13px; }
+  .kg-label { font-size:11px; color:var(--ink-soft); text-align:center; margin-top:2px; }
+  .qty { display:flex; align-items:center; gap:6px; }
+  .qty button { width:26px; height:26px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .qty button:active { background: var(--clay-soft); }
+  .qty input { width:30px; text-align:center; border:none; background:transparent; color:var(--ink); font-size:14px; font-family:inherit; }
+  .del-btn { width:22px; height:22px; border-radius:50%; border:1px solid var(--line); background:var(--bg); color:var(--ink-soft); font-size:13px; cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center; }
+  .del-btn:hover { color:#B44B2C; border-color:#B44B2C; }
+  .add-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; align-items:center; }
+  .add-row input { padding:7px 9px; border-radius:7px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:13.5px; }
+  .add-row input[data-w="name"] { flex: 1 1 130px; min-width:100px; }
+  .add-row input[data-w="num"] { width:60px; }
+  .add-row button { padding:7px 12px; border-radius:7px; border:1px solid var(--btn); background:var(--btn); color:#fff; font-family:inherit; font-size:13px; cursor:pointer; white-space:nowrap; }
+  .addr-wrap { position: relative; margin-top: 6px; }
+  .addr-wrap input { width:100%; padding:10px 11px; border-radius:7px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:14.5px; }
+  .addr-suggestions { position:absolute; left:0; right:0; top:100%; background:var(--card); border:1px solid var(--line); border-top:none; border-radius:0 0 8px 8px; z-index:5; max-height:220px; overflow-y:auto; }
+  .addr-suggestions div { padding:9px 11px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--line); }
+  .addr-suggestions div:last-child { border-bottom:none; }
+  .addr-suggestions div:hover { background: var(--clay-soft); }
+  .addr-status { font-size:12px; margin-top:6px; color: var(--ink-soft); }
+  .addr-status.ok { color: var(--green); }
+  .addr-status.err { color: #B44B2C; }
+  .km-row { display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .km-row input[type="number"] { flex:1; padding:9px 10px; border-radius:7px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:15px; }
+  .km-row-label { font-size:12px; color:var(--ink-soft); margin-top:12px; margin-bottom:4px; }
+  .subida-row { margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+  .subida-row label { display:flex; align-items:center; gap:8px; font-size:14px; cursor:pointer; flex-wrap:wrap; }
+  .subida-row input[type="checkbox"] { width:17px; height:17px; accent-color: var(--green); cursor:pointer; }
+  .subida-precio { font-size:12.5px; color:var(--ink-soft); }
+  .result-card { position: sticky; top: 16px; }
+  .tier-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600; color:#fff; margin-bottom:12px; }
+  .price { font-family:'Zilla Slab',serif; font-size:32px; font-weight:700; color:var(--green-deep); margin:4px 0 2px; }
+  .breakdown { font-size:13px; color:var(--ink-soft); margin-bottom:14px; }
+  .breakdown div { display:flex; justify-content:space-between; padding:2px 0; }
+  .kg-total { font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
+  details { margin-top:16px; }
+  summary { cursor:pointer; font-size:13.5px; color:var(--green); font-weight:500; padding:4px 0; }
+  .tier-row { display:grid; grid-template-columns: 1.1fr 0.8fr 0.8fr 24px; gap:6px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line); }
+  .tier-row:last-child { border-bottom:none; }
+  .tier-row input { width:100%; padding:6px 7px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:12.5px; }
+  .tier-head { display:grid; grid-template-columns: 1.1fr 0.8fr 0.8fr 24px; gap:6px; font-size:11px; color:var(--ink-soft); margin-top:10px; margin-bottom:2px; }
+  .admin-list-row { display:grid; grid-template-columns: 1fr 0.8fr 0.8fr 1fr 24px; gap:6px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .admin-list-row input, .admin-list-row select { width:100%; padding:5px 6px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:12px; }
+  .reset-link { font-size:12px; color:var(--ink-soft); background:none; border:none; text-decoration:underline; cursor:pointer; padding:0; margin-top:14px; display:block; }
+  .locked-note { font-size:12px; color:var(--ink-soft); font-style:italic; padding:6px 0; }
+  .map-config-row { display:flex; flex-direction:column; gap:4px; margin-top:8px; }
+  .map-config-row label { font-size:11.5px; color:var(--ink-soft); }
+  .map-config-row input { padding:7px 9px; border-radius:7px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:13px; }
+  .map-config-row button { align-self:flex-start; padding:6px 12px; border-radius:7px; border:1px solid var(--btn); background:var(--btn); color:#fff; font-family:inherit; font-size:12.5px; cursor:pointer; margin-top:4px; }
+  #loginGate { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .gate-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:28px 26px; max-width:320px; width:100%; }
+  .gate-card h1 { font-size:22px; margin:0 0 4px; }
+  .gate-card .sub { margin:0 0 18px; }
+  .gate-card label { font-size:12px; color:var(--ink-soft); }
+  .gate-card input { width:100%; padding:10px 11px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:15px; margin:4px 0 14px; }
+  .gate-card button.primary { width:100%; padding:11px; border-radius:8px; border:1px solid var(--btn); background:var(--btn); color:#fff; font-family:inherit; font-size:14.5px; cursor:pointer; }
+  .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .who { font-size:13px; color:var(--ink-soft); }
+  .who b { color:var(--ink); }
+  .logout-btn { font-size:12.5px; color:var(--ink-soft); background:none; border:1px solid var(--line); border-radius:20px; padding:5px 12px; cursor:pointer; }
+  .login-err { color:#B44B2C; font-size:12px; margin:-4px 0 8px; }
+  .step-label { font-size:12px; color:var(--ink-soft); margin:14px 0 4px; font-weight:500; text-transform:uppercase; letter-spacing:.04em; }
+  .type-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width: 380px) { .type-grid { grid-template-columns:1fr; } }
+  .type-card { text-align:left; background:var(--bg); border:2px solid var(--line); border-radius:12px; padding:12px; cursor:pointer; font-family:inherit; color:var(--ink); display:flex; flex-direction:column; gap:5px; min-height:112px; }
+  .type-card:active { transform:scale(.99); }
+  .type-card.sel { border-color:var(--btn); background:var(--clay-soft); }
+  .tc-name { font-weight:600; font-size:15px; }
+  .tc-desc { font-size:12px; color:var(--ink-soft); line-height:1.35; }
+  .tc-rate { font-size:12.5px; color:var(--green); font-weight:600; margin-top:auto; }
+  .type-edit { border-bottom:1px solid var(--line); padding:9px 0; }
+  .type-edit:last-child { border-bottom:none; }
+  .type-edit-top { display:grid; grid-template-columns:1fr 64px 24px 24px 24px; gap:6px; align-items:center; }
+  .type-edit input { padding:6px 7px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:12.5px; min-width:0; }
+  .type-edit button:disabled { opacity:.35; cursor:default; }
+  .boot { min-height:100vh; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); font-size:14px; }
+  .save-state { font-size:12px; color:var(--ink-soft); }
+  .save-state.ok { color:var(--green); } .save-state.err { color:#B44B2C; }
+  .primary-btn { padding:8px 14px; border-radius:7px; border:1px solid var(--btn); background:var(--btn); color:#fff; font-family:inherit; font-size:13px; cursor:pointer; }
+  .primary-btn:disabled { opacity:.45; cursor:not-allowed; }
+  .users-actions { display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
+  .admin-list-row input:disabled { opacity:.6; }
+</style>
+</head>
+<body>
+<div id="boot" class="boot">Cargando…</div>
+
+<div id="loginGate" style="display:none;">
+  <div class="gate-card">
+    <h1>Calculadora de envíos</h1>
+    <p class="sub">Ingresá tu legajo y PIN para continuar.</p>
+    <label>Legajo</label>
+    <input type="text" id="loginLegajo" inputmode="numeric" autocomplete="username" placeholder="Ej: 0001">
+    <label>PIN</label>
+    <input type="password" id="loginPin" inputmode="numeric" autocomplete="current-password" placeholder="PIN">
+    <div id="loginErr" class="login-err" style="display:none;">Legajo o PIN incorrecto.</div>
+    <button class="primary" id="loginBtn">Ingresar</button>
+  </div>
+</div>
+
+<div class="wrap" id="appContent" style="display:none;">
+  <div class="top-bar">
+    <span class="who">Hola, <b id="whoName"></b> <span id="saveState" class="save-state"></span></span>
+    <button class="logout-btn" id="logoutBtn">Salir</button>
+  </div>
+
+  <h1>Calculadora de envíos</h1>
+  <p class="sub">Elegí el tamaño de la carga, buscá la dirección del cliente y obtené el precio.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Cotizar envío</h2>
+      <div class="step-label" style="margin-top:0;">1 · Tamaño de la carga</div>
+      <div id="typeCards" class="type-grid"></div>
+
+      <div class="step-label">2 · Dirección del cliente</div>
+      <div class="addr-wrap">
+        <input type="text" id="addrInput" placeholder="Escribí la dirección..." autocomplete="off">
+        <div id="addrSuggestions" class="addr-suggestions" style="display:none;"></div>
+      </div>
+      <div id="addrStatus" class="addr-status"></div>
+
+      <div class="km-row">
+        <input type="number" id="km" min="0" step="0.5" placeholder="0">
+        <span style="font-size:13px; color:var(--ink-soft);">km (se completa solo, o cargalo a mano)</span>
+      </div>
+
+      <div class="subida-row">
+        <div class="step-label" style="margin-top:0;">3 · Extras</div>
+        <label>
+          <input type="checkbox" id="subidaCheck">
+          Incluye subida a domicilio (escalera / piso alto)
+          <span id="subidaPrecioLabel" class="subida-precio"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="card result-card">
+      <h2>Resultado</h2>
+      <span id="tierBadge" class="tier-badge">—</span>
+      <div class="price" id="priceOut">$0</div>
+      <div class="breakdown" id="breakdown"></div>
+      
+
+      <div id="lockedNote" class="locked-note">🔒 Solo un administrador puede configurar tipos de carga, tarifas y usuarios.</div>
+
+      <details id="mapDetails" class="admin-only" style="display:none;">
+        <summary>Estado del mapa (Mapbox)</summary>
+        <p id="mapStatus" style="font-size:12.5px; color:var(--ink-soft); margin:8px 0 0;"></p>
+      </details>
+
+      <details id="subidaDetails" class="admin-only" style="display:none;">
+        <summary>Costo extra por subida a domicilio</summary>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+          <span>$</span>
+          <input type="number" id="subidaMonto" min="0" step="1" style="width:100px; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink);">
+          <span style="font-size:12px; color:var(--ink-soft);">monto fijo</span>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+          <input type="number" id="subidaPct" min="0" step="0.5" style="width:100px; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink);">
+          <span>%</span>
+          <span style="font-size:12px; color:var(--ink-soft);">extra sobre el costo por km</span>
+        </div>
+      </details>
+
+      <details id="typesDetails" class="admin-only" style="display:none;">
+        <summary>Configurar tipos de carga y tarifas</summary>
+        <div id="typesAdmin"></div>
+        <div class="add-row">
+          <input data-w="name" type="text" id="newTypeName" placeholder="Nombre (ej: 🚛 Flete grande)">
+          <input data-w="num" type="number" id="newTypeKm" placeholder="$/km">
+        </div>
+        <div class="add-row">
+          <input data-w="name" type="text" id="newTypeDesc" placeholder="Ejemplos de qué entra">
+          <button id="addTypeBtn">+ Agregar tipo</button>
+        </div>
+        <p style="font-size:11.5px; color:var(--ink-soft); margin:8px 0 0;">Se muestran en este orden. Usá ▲ ▼ para reordenar. Las descripciones son las que guían al vendedor: conviene escribir ejemplos concretos.</p>
+        <button class="reset-link" id="resetBtn">Restaurar tipos y tarifas por defecto</button>
+      </details>
+
+      <details id="usersDetails" class="admin-only" style="display:none;">
+        <summary>Usuarios (legajo, PIN y rol)</summary>
+        <div class="tier-head" style="grid-template-columns: 1fr 0.8fr 0.8fr 1fr 24px;"><div>Nombre</div><div>Legajo</div><div>PIN nuevo</div><div>Rol</div><div></div></div>
+        <div id="adminList"></div>
+        <div class="add-row">
+          <input data-w="name" type="text" id="newAdminName" placeholder="Nombre">
+          <input data-w="num" type="text" id="newAdminLegajo" placeholder="Legajo">
+          <input data-w="num" type="password" id="newAdminPin" inputmode="numeric" placeholder="PIN" autocomplete="new-password">
+          <select id="newAdminRole" style="padding:7px 6px; border-radius:7px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:13px;">
+            <option value="vendedor">Vendedor</option>
+            <option value="admin">Administrador</option>
+          </select>
+          <button id="addAdminBtn">+ Agregar</button>
+        </div>
+        <div class="users-actions">
+          <button class="primary-btn" id="saveUsersBtn">Guardar usuarios</button>
+          <span id="usersMsg" class="save-state"></span>
+        </div>
+        <p style="font-size:11.5px; color:var(--ink-soft); margin:8px 0 0;">PIN de 4 a 8 números. Dejá el PIN vacío para no cambiarlo. Los cambios rigen recién al tocar "Guardar usuarios".</p>
+      </details>
+
+      
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#6E8F5C','#C98A34','#B44B2C','#4F6D8C','#8E5B3F','#7A4F8C','#4A8C7A'];
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+let session = null, isAdmin = false;
+let types = [], subidaMonto = 0, subidaPct = 0, selectedTypeId = null;
+let users = [];
+let mapboxToken = '', viveroAddress = '', viveroCoords = null, IS_DEMO = true;
+
+// ===== Comunicación con el servidor =====
+async function api(path, opts) {
+  opts = opts || {};
+  const method = opts.method || 'GET';
+  const init = { method, credentials: 'same-origin' };
+  if (method !== 'GET') { init.headers = { 'Content-Type': 'application/json' }; init.body = JSON.stringify(opts.body || {}); }
+  let res;
+  try { res = await fetch('/api/' + path, init); }
+  catch (e) { return { ok: false, status: 0, data: { error: 'Sin conexión con el servidor.' } }; }
+  let data = null;
+  try { data = await res.json(); } catch (e) {}
+  if (res.status === 401 && path !== 'login' && path !== 'me') showLogin('Tu sesión venció. Ingresá de nuevo.');
+  return { ok: res.ok, status: res.status, data: data || {} };
+}
+
+function showLogin(msg) {
+  session = null; isAdmin = false;
+  $('boot').style.display = 'none';
+  $('appContent').style.display = 'none';
+  $('loginGate').style.display = 'flex';
+  const err = $('loginErr');
+  if (msg) { err.textContent = msg; err.style.display = 'block'; } else err.style.display = 'none';
+}
+
+async function loadConfig() {
+  const r = await api('config');
+  if (!r.ok) return false;
+  const c = r.data;
+  types = c.types; subidaMonto = c.subidaMonto; subidaPct = c.subidaPct;
+  if (!types.some((t) => t.id === selectedTypeId)) selectedTypeId = null;
+  mapboxToken = (c.map && c.map.token) || '';
+  viveroAddress = (c.map && c.map.address) || '';
+  viveroCoords = (c.map && c.map.coords) || null;
+  IS_DEMO = !mapboxToken;
+  return true;
+}
+
+async function enterApp(u) {
+  session = u; isAdmin = u.role === 'admin';
+  if (!(await loadConfig())) { showLogin('No se pudo cargar la configuración. Probá de nuevo.'); return; }
+  $('whoName').textContent = u.name + (isAdmin ? ' (administrador)' : '');
+  $('boot').style.display = 'none';
+  $('loginGate').style.display = 'none';
+  $('appContent').style.display = 'block';
+  applyAdminUI();
+  updateSubidaLabel(); compute();
+  if (isAdmin) loadUsers();
+  initVivero();
+}
+
+// Los vendedores toman los precios nuevos cada vez que vuelven a abrir la pantalla.
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && session && !isAdmin) {
+    if (await loadConfig()) { renderTypeCards(); updateSubidaLabel(); compute(); }
+  }
+});
+
+// ===== Guardado de configuración (solo administradores) =====
+let saveTimer = null;
+function setSaveState(text, cls) { const el = $('saveState'); el.textContent = text; el.className = 'save-state ' + (cls || ''); }
+function saveConfig() {
+  if (!isAdmin) return;
+  setSaveState('Guardando…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const r = await api('config', { method: 'PUT', body: { types, subidaMonto, subidaPct } });
+    setSaveState(r.ok ? '✓ Guardado para todos' : '⚠ No se pudo guardar: ' + ((r.data && r.data.error) || 'error'), r.ok ? 'ok' : 'err');
+  }, 500);
+}
+
+// ===== Tipos de carga =====
+const typeCardsEl = $('typeCards'), typesAdminEl = $('typesAdmin');
+const money = (n) => '$' + Number(n).toLocaleString('es-AR');
+function renderTypeCards() {
+  typeCardsEl.innerHTML = types.map((t) => `
+    <button type="button" class="type-card ${t.id === selectedTypeId ? 'sel' : ''}" data-id="${esc(t.id)}">
+      <span class="tc-name">${esc(t.name)}</span>
+      <span class="tc-desc">${esc(t.desc)}</span>
+      <span class="tc-rate">${money(t.kmRate)}/km</span>
+    </button>`).join('');
+}
+typeCardsEl.addEventListener('click', (e) => {
+  const b = e.target.closest('.type-card'); if (!b) return;
+  selectedTypeId = b.dataset.id; renderTypeCards(); compute();
+});
+function renderTypesAdmin() {
+  typesAdminEl.innerHTML = types.map((t, i) => `
+    <div class="type-edit" data-id="${esc(t.id)}">
+      <div class="type-edit-top">
+        <input type="text" value="${esc(t.name)}" data-role="tname" placeholder="Nombre">
+        <input type="number" min="0" step="1" value="${t.kmRate === 0 ? '' : t.kmRate}" placeholder="$/km" data-role="trate">
+        <button class="del-btn" data-role="up" title="Subir" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button class="del-btn" data-role="down" title="Bajar" ${i === types.length - 1 ? 'disabled' : ''}>▼</button>
+        <button class="del-btn" data-role="deltype" title="Eliminar">×</button>
+      </div>
+      <input type="text" value="${esc(t.desc)}" data-role="tdesc" placeholder="Ejemplos de qué entra (lo ve el vendedor)" style="width:100%; margin-top:6px;">
+    </div>`).join('');
+}
+typesAdminEl.addEventListener('input', (e) => {
+  const el = e.target, row = el.closest('.type-edit'); if (!row) return;
+  const t = types.find((x) => x.id === row.dataset.id); if (!t) return;
+  if (el.dataset.role === 'tname') t.name = el.value;
+  if (el.dataset.role === 'tdesc') t.desc = el.value;
+  if (el.dataset.role === 'trate') t.kmRate = el.value === '' ? 0 : (parseFloat(el.value) || 0);
+  renderTypeCards(); saveConfig(); compute();
+});
+typesAdminEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button'), row = e.target.closest('.type-edit'); if (!btn || !row || btn.disabled) return;
+  const i = types.findIndex((x) => x.id === row.dataset.id); if (i < 0) return;
+  const role = btn.dataset.role;
+  if (role === 'up' && i > 0) [types[i - 1], types[i]] = [types[i], types[i - 1]];
+  else if (role === 'down' && i < types.length - 1) [types[i + 1], types[i]] = [types[i], types[i + 1]];
+  else if (role === 'deltype') {
+    if (types.length <= 1) { alert('Debe quedar al menos un tipo de carga.'); return; }
+    types.splice(i, 1); if (selectedTypeId === row.dataset.id) selectedTypeId = null;
+  } else return;
+  renderTypesAdmin(); renderTypeCards(); saveConfig(); compute();
+});
+$('addTypeBtn').addEventListener('click', () => {
+  const nameEl = $('newTypeName'), kmEl = $('newTypeKm'), descEl = $('newTypeDesc');
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  types.push({ id: 'type_' + Date.now(), name, desc: descEl.value.trim(), kmRate: parseFloat(kmEl.value) || 0 });
+  nameEl.value = ''; kmEl.value = ''; descEl.value = '';
+  renderTypesAdmin(); renderTypeCards(); saveConfig(); compute();
+});
+$('resetBtn').addEventListener('click', async () => {
+  if (!confirm('Esto restaura los tipos de carga y la subida a los valores de fábrica para TODOS los usuarios. ¿Continuar?')) return;
+  const r = await api('config', { method: 'PUT', body: { reset: true } });
+  if (r.ok) { await loadConfig(); renderTypesAdmin(); renderTypeCards(); updateSubidaLabel(); compute(); setSaveState('✓ Restaurado', 'ok'); }
+});
+
+// ===== Subida a domicilio =====
+$('subidaCheck').addEventListener('change', compute);
+$('subidaMonto').addEventListener('input', (e) => { subidaMonto = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0); saveConfig(); updateSubidaLabel(false); compute(); });
+$('subidaPct').addEventListener('input', (e) => { subidaPct = e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0); saveConfig(); updateSubidaLabel(false); compute(); });
+function updateSubidaLabel(fillInputs) {
+  const parts = [];
+  if (subidaMonto > 0) parts.push('+$' + subidaMonto.toLocaleString('es-AR'));
+  if (subidaPct > 0) parts.push('+' + subidaPct + '% del km');
+  $('subidaPrecioLabel').textContent = parts.length ? '(' + parts.join(' y ') + ')' : '';
+  if (fillInputs !== false) {
+    $('subidaMonto').value = subidaMonto === 0 ? '' : subidaMonto;
+    $('subidaPct').value = subidaPct === 0 ? '' : subidaPct;
+  }
+}
+
+// ===== Dirección del cliente (Mapbox real, o simulada en modo demo) =====
+const kmInput = $('km'), addrInput = $('addrInput'), addrSuggestions = $('addrSuggestions'), addrStatus = $('addrStatus');
+let addrDebounce = null;
+kmInput.addEventListener('input', compute);
+
+const DEMO_ADDRESSES = [
+  { name: 'Av. Hipólito Yrigoyen 5000, Lanús', km: 4.2 }, { name: 'Av. San Martín 800, Quilmes', km: 12.3 },
+  { name: 'Av. Rivadavia 17000, Morón', km: 18.5 }, { name: 'Av. Cabildo 2000, CABA', km: 22.4 },
+  { name: 'Calle 12 1500, La Plata', km: 52 },
+];
+function demoNote() { addrStatus.textContent = 'MODO DEMO: direcciones y distancias simuladas (falta conectar Mapbox).'; addrStatus.className = 'addr-status'; }
+function setKm(km, note) { kmInput.value = km; addrStatus.textContent = '✓ ' + km + ' km' + note; addrStatus.className = 'addr-status ok'; compute(); }
+
+addrInput.addEventListener('input', () => {
+  const q = addrInput.value.trim();
+  clearTimeout(addrDebounce);
+  if (q.length < 2) { addrSuggestions.style.display = 'none'; if (IS_DEMO) demoNote(); else addrStatus.textContent = ''; return; }
+  if (IS_DEMO) { showDemoSuggestions(q); return; }
+  if (q.length < 4) { addrSuggestions.style.display = 'none'; return; }
+  addrDebounce = setTimeout(() => fetchSuggestions(q), 350);
+});
+function showDemoSuggestions(q) {
+  const words = q.toLowerCase().split(/\s+/);
+  let list = DEMO_ADDRESSES.filter((a) => words.every((w) => a.name.toLowerCase().includes(w)));
+  if (!list.length) list = DEMO_ADDRESSES;
+  addrSuggestions.innerHTML = list.map((a) => `<div>${esc(a.name)} (demo)</div>`).join('');
+  addrSuggestions.style.display = 'block';
+  addrSuggestions.querySelectorAll('div').forEach((el, i) => el.addEventListener('click', () => {
+    addrInput.value = list[i].name; addrSuggestions.style.display = 'none';
+    setKm(list[i].km, ' (distancia simulada, modo demo)');
+  }));
+}
+async function fetchSuggestions(q) {
+  try {
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${encodeURIComponent(mapboxToken)}&country=AR&limit=5&language=es`;
+    const data = await (await fetch(url)).json();
+    const feats = data.features || [];
+    if (!feats.length) { addrSuggestions.style.display = 'none'; return; }
+    addrSuggestions.innerHTML = feats.map((f) => `<div>${esc(f.place_name)}</div>`).join('');
+    addrSuggestions.style.display = 'block';
+    addrSuggestions.querySelectorAll('div').forEach((el, i) => el.addEventListener('click', () => selectAddress(feats[i])));
+  } catch (e) { addrStatus.textContent = 'No se pudo buscar la dirección. Cargá los km a mano.'; addrStatus.className = 'addr-status err'; }
+}
+async function selectAddress(feature) {
+  addrInput.value = feature.place_name; addrSuggestions.style.display = 'none';
+  if (!viveroCoords) { addrStatus.textContent = 'No se pudo ubicar el vivero (revisar VIVERO_ADDRESS). Cargá los km a mano.'; addrStatus.className = 'addr-status err'; return; }
+  addrStatus.textContent = 'Calculando distancia...'; addrStatus.className = 'addr-status';
+  try {
+    const c = feature.center;
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${viveroCoords[0]},${viveroCoords[1]};${c[0]},${c[1]}?access_token=${encodeURIComponent(mapboxToken)}&overview=false`;
+    const data = await (await fetch(url)).json();
+    if (data.routes && data.routes[0]) setKm(Math.round((data.routes[0].distance / 1000) * 10) / 10, ' por ruta desde el vivero');
+    else { addrStatus.textContent = 'No se pudo calcular la ruta. Cargá los km a mano.'; addrStatus.className = 'addr-status err'; }
+  } catch (e) { addrStatus.textContent = 'Error calculando la distancia. Cargá los km a mano.'; addrStatus.className = 'addr-status err'; }
+}
+async function initVivero() {
+  if (IS_DEMO) { demoNote(); return; }
+  if (viveroCoords || !viveroAddress) return;
+  try {
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(viveroAddress)}.json?access_token=${encodeURIComponent(mapboxToken)}&country=AR&limit=1&language=es`;
+    const data = await (await fetch(url)).json();
+    if (data.features && data.features[0]) viveroCoords = data.features[0].center;
+  } catch (e) {}
+  updateMapStatus();
+}
+function updateMapStatus() {
+  $('mapStatus').textContent = IS_DEMO
+    ? 'MODO DEMO: falta la variable MAPBOX_TOKEN en el servidor. Las distancias son simuladas (ver README).'
+    : (viveroCoords ? 'Mapbox conectado. Vivero: ' + (viveroAddress || 'coordenadas fijas') : 'Mapbox conectado, pero falta ubicar el vivero (revisar VIVERO_ADDRESS).');
+}
+
+// ===== Usuarios (solo administradores) =====
+const adminListEl = $('adminList');
+async function loadUsers() { const r = await api('users'); if (r.ok) { users = r.data.users; renderUsers(); } }
+function renderUsers() {
+  adminListEl.innerHTML = users.map((u, i) => `
+    <div class="admin-list-row">
+      <input type="text" value="${esc(u.name)}" data-i="${i}" data-f="name">
+      <input type="text" value="${esc(u.legajo)}" data-i="${i}" data-f="legajo" ${u.isNew ? '' : 'disabled'}>
+      <input type="password" inputmode="numeric" autocomplete="new-password" placeholder="${u.isNew ? 'PIN' : 'sin cambios'}" value="${esc(u.pin || '')}" data-i="${i}" data-f="pin">
+      <select data-i="${i}" data-f="role">
+        <option value="vendedor" ${u.role === 'vendedor' ? 'selected' : ''}>Vendedor</option>
+        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Administrador</option>
+      </select>
+      <button class="del-btn" data-i="${i}" data-del="1" title="Quitar">×</button>
+    </div>`).join('');
+}
+adminListEl.addEventListener('input', (e) => { const el = e.target; if (el.dataset.f) users[+el.dataset.i][el.dataset.f] = el.value; });
+adminListEl.addEventListener('change', (e) => { const el = e.target; if (el.dataset.f === 'role') users[+el.dataset.i].role = el.value; });
+adminListEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn || !btn.dataset.del) return;
+  users.splice(+btn.dataset.i, 1); renderUsers();
+});
+$('addAdminBtn').addEventListener('click', () => {
+  const name = $('newAdminName').value.trim(), legajo = $('newAdminLegajo').value.trim(), pin = $('newAdminPin').value.trim();
+  if (!name || !legajo || !pin) return;
+  if (users.some((u) => u.legajo === legajo)) { alert('Ese legajo ya existe.'); return; }
+  users.push({ name, legajo, pin, role: $('newAdminRole').value, isNew: true });
+  $('newAdminName').value = ''; $('newAdminLegajo').value = ''; $('newAdminPin').value = '';
+  renderUsers();
+});
+$('saveUsersBtn').addEventListener('click', async () => {
+  const msg = $('usersMsg');
+  msg.textContent = 'Guardando…'; msg.className = 'save-state';
+  const payload = users.map((u) => ({ legajo: u.legajo, name: u.name, role: u.role, ...(u.pin ? { pin: u.pin } : {}) }));
+  const r = await api('users', { method: 'PUT', body: { users: payload } });
+  if (r.ok) { msg.textContent = '✓ Usuarios guardados'; msg.className = 'save-state ok'; await loadUsers(); }
+  else { msg.textContent = '⚠ ' + ((r.data && r.data.error) || 'No se pudo guardar'); msg.className = 'save-state err'; }
+});
+
+// ===== Login / Logout =====
+function applyAdminUI() {
+  document.querySelectorAll('.admin-only').forEach((el) => { el.style.display = isAdmin ? '' : 'none'; });
+  $('lockedNote').style.display = isAdmin ? 'none' : '';
+  setSaveState('');
+  updateMapStatus();
+  renderTypeCards(); renderTypesAdmin();
+}
+async function attemptLogin() {
+  const r = await api('login', { method: 'POST', body: { legajo: $('loginLegajo').value.trim(), pin: $('loginPin').value.trim() } });
+  if (r.ok && r.data.ok) {
+    $('loginLegajo').value = ''; $('loginPin').value = ''; $('loginErr').style.display = 'none';
+    await enterApp(r.data);
+  } else {
+    $('loginErr').textContent = (r.data && r.data.error) || 'Legajo o PIN incorrecto.';
+    $('loginErr').style.display = 'block';
+  }
+}
+$('loginBtn').addEventListener('click', attemptLogin);
+$('loginPin').addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
+$('logoutBtn').addEventListener('click', async () => { await api('logout', { method: 'POST' }); showLogin(); });
+
+// ===== Cálculo principal =====
+function compute() {
+  const km = parseFloat(kmInput.value) || 0;
+  const idx = types.findIndex((t) => t.id === selectedTypeId);
+  const t = idx >= 0 ? types[idx] : null;
+  const badge = $('tierBadge'), conSubida = $('subidaCheck').checked;
+  if (!t) {
+    badge.textContent = 'Elegí el tamaño de la carga'; badge.style.background = 'var(--ink-soft)';
+    $('priceOut').textContent = '$0'; $('breakdown').innerHTML = '';
+  } else {
+    const kmCost = t.kmRate * km;
+    const subidaFija = conSubida ? subidaMonto : 0;
+    const subidaPctCost = conSubida ? (kmCost * subidaPct / 100) : 0;
+    const total = kmCost + subidaFija + subidaPctCost;
+    badge.textContent = t.name; badge.style.background = COLORS[idx % COLORS.length];
+    $('priceOut').textContent = money(Math.round(total));
+    $('breakdown').innerHTML = `
+      <div><span>${km} km × ${money(t.kmRate)}/km</span><span>${money(Math.round(kmCost))}</span></div>
+      ${conSubida && subidaFija > 0 ? `<div><span>Subida a domicilio (fijo)</span><span>${money(subidaFija)}</span></div>` : ''}
+      ${conSubida && subidaPct > 0 ? `<div><span>Subida a domicilio (${subidaPct}% del km)</span><span>${money(Math.round(subidaPctCost))}</span></div>` : ''}`;
+  }
+}
+
+// ===== Arranque =====
+(async function boot() {
+  const r = await api('me');
+  if (r.ok && r.data.ok) await enterApp(r.data); else showLogin();
+})();
+</script>
+</body>
+</html>
